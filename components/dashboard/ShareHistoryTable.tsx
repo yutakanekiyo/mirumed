@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { formatDate, isExpired } from '@/lib/utils'
-import { CheckCircle2, Clock, Ban, AlertCircle } from 'lucide-react'
+import { CheckCircle2, Clock, Ban, AlertCircle, Copy, Check, ExternalLink } from 'lucide-react'
 
 interface WatchLog {
   id: string
@@ -24,6 +24,29 @@ interface Share {
 
 interface ShareHistoryTableProps {
   shares: Share[]
+}
+
+function CopyButton({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors min-h-0"
+      title="リンクをコピー"
+    >
+      {copied
+        ? <Check className="w-3.5 h-3.5 text-green-600" />
+        : <Copy className="w-3.5 h-3.5" />
+      }
+    </button>
+  )
 }
 
 export default function ShareHistoryTable({ shares }: ShareHistoryTableProps) {
@@ -53,7 +76,8 @@ export default function ShareHistoryTable({ shares }: ShareHistoryTableProps) {
     )
   }
 
-  // 新しい順に並べる
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+
   const sorted = [...localShares].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
@@ -68,6 +92,7 @@ export default function ShareHistoryTable({ shares }: ShareHistoryTableProps) {
             <th className="px-6 py-3 font-medium">有効期限</th>
             <th className="px-6 py-3 font-medium">視聴状況</th>
             <th className="px-6 py-3 font-medium">視聴日時</th>
+            <th className="px-6 py-3 font-medium">共有リンク</th>
             <th className="px-6 py-3 font-medium"></th>
           </tr>
         </thead>
@@ -80,6 +105,7 @@ export default function ShareHistoryTable({ shares }: ShareHistoryTableProps) {
               (a, b) => new Date(b.watched_at).getTime() - new Date(a.watched_at).getTime()
             )[0]
             const isActive = !share.is_revoked && !expired
+            const watchUrl = `${origin}/watch/${share.token}`
 
             return (
               <tr key={share.id} className="hover:bg-gray-50 transition-colors">
@@ -145,6 +171,27 @@ export default function ShareHistoryTable({ shares }: ShareHistoryTableProps) {
                   ) : (
                     <span className="text-gray-300">—</span>
                   )}
+                </td>
+
+                {/* 共有リンク */}
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={watchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`text-xs truncate max-w-[160px] hover:underline min-h-0 ${
+                        isActive ? 'text-primary' : 'text-gray-300 pointer-events-none'
+                      }`}
+                      title={watchUrl}
+                    >
+                      <span className="flex items-center gap-1">
+                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        /watch/{share.token.slice(0, 8)}…
+                      </span>
+                    </a>
+                    {isActive && <CopyButton url={watchUrl} />}
+                  </div>
                 </td>
 
                 {/* アクション */}
