@@ -58,10 +58,10 @@ export default async function VideoDetailPage({ params }: PageProps) {
           <ArrowLeft className="w-4 h-4" />
           動画一覧へ戻る
         </Link>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{video.title}</h1>
-            <div className="flex items-center gap-2 mt-2">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">{video.title}</h1>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
               {video.disease_category && (
                 <Badge variant="info">{video.disease_category}</Badge>
               )}
@@ -81,7 +81,7 @@ export default async function VideoDetailPage({ params }: PageProps) {
       </div>
 
       {/* サマリー */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-3 md:gap-4 mb-6">
         <Card>
           <CardBody className="text-center py-5">
             <p className="text-3xl font-bold text-gray-900">

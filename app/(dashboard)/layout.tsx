@@ -21,9 +21,9 @@ export default async function DashboardLayout({
     .single()
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background">
       <DashboardSidebar profile={profile} />
-      <main className="flex-1 ml-64 p-8">
+      <main className="md:ml-64 pt-14 md:pt-0 p-4 md:p-8">
         {children}
       </main>
     </div>

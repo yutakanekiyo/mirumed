@@ -83,134 +83,168 @@ export default function ShareHistoryTable({ shares }: ShareHistoryTableProps) {
   )
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-100 text-left text-xs text-gray-500 uppercase tracking-wide">
-            <th className="px-6 py-3 font-medium">患者名</th>
-            <th className="px-6 py-3 font-medium">発行日</th>
-            <th className="px-6 py-3 font-medium">有効期限</th>
-            <th className="px-6 py-3 font-medium">視聴状況</th>
-            <th className="px-6 py-3 font-medium">視聴日時</th>
-            <th className="px-6 py-3 font-medium">共有リンク</th>
-            <th className="px-6 py-3 font-medium"></th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-50">
-          {sorted.map((share) => {
-            const expired = isExpired(share.expires_at)
-            const completed = share.watch_logs?.some((l) => l.is_completed)
-            const watched = share.watch_logs?.length > 0
-            const latestLog = share.watch_logs?.sort(
-              (a, b) => new Date(b.watched_at).getTime() - new Date(a.watched_at).getTime()
-            )[0]
-            const isActive = !share.is_revoked && !expired
-            const watchUrl = `${origin}/watch/${share.token}`
+    <>
+      {/* モバイル: カード形式 */}
+      <div className="md:hidden divide-y divide-gray-100">
+        {sorted.map((share) => {
+          const expired = isExpired(share.expires_at)
+          const completed = share.watch_logs?.some((l) => l.is_completed)
+          const watched = share.watch_logs?.length > 0
+          const latestLog = share.watch_logs?.sort(
+            (a, b) => new Date(b.watched_at).getTime() - new Date(a.watched_at).getTime()
+          )[0]
+          const isActive = !share.is_revoked && !expired
+          const watchUrl = `${origin}/watch/${share.token}`
 
-            return (
-              <tr key={share.id} className="hover:bg-gray-50 transition-colors">
-                {/* 患者名 */}
-                <td className="px-6 py-4 font-medium text-gray-900">
-                  {share.patient_name ?? (
-                    <span className="text-gray-400">未設定</span>
-                  )}
-                </td>
-
-                {/* 発行日 */}
-                <td className="px-6 py-4 text-gray-600">
-                  {formatDate(share.created_at)}
-                </td>
-
-                {/* 有効期限 */}
-                <td className="px-6 py-4 text-gray-600">
-                  <span className={expired || share.is_revoked ? 'text-gray-400 line-through' : ''}>
-                    {formatDate(share.expires_at)}
+          return (
+            <div key={share.id} className="px-4 py-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium text-gray-900 text-sm">
+                  {share.patient_name ?? <span className="text-gray-400">患者名未設定</span>}
+                </p>
+                {share.is_revoked ? (
+                  <Badge variant="danger" className="gap-1"><Ban className="w-3 h-3" />無効化済み</Badge>
+                ) : expired ? (
+                  <Badge variant="warning" className="gap-1"><AlertCircle className="w-3 h-3" />期限切れ</Badge>
+                ) : completed ? (
+                  <Badge variant="success" className="gap-1"><CheckCircle2 className="w-3 h-3" />視聴完了</Badge>
+                ) : watched ? (
+                  <Badge variant="info" className="gap-1"><Clock className="w-3 h-3" />視聴中</Badge>
+                ) : (
+                  <Badge variant="default">未視聴</Badge>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                <span>発行日: {formatDate(share.created_at)}</span>
+                <span className={expired || share.is_revoked ? 'text-gray-400 line-through' : ''}>
+                  期限: {formatDate(share.expires_at)}
+                </span>
+                {latestLog && (
+                  <span>
+                    視聴: {new Date(latestLog.watched_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </span>
-                </td>
-
-                {/* 視聴状況 */}
-                <td className="px-6 py-4">
-                  {share.is_revoked ? (
-                    <Badge variant="danger" className="gap-1">
-                      <Ban className="w-3 h-3" />
-                      無効化済み
-                    </Badge>
-                  ) : expired ? (
-                    <Badge variant="warning" className="gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      期限切れ
-                    </Badge>
-                  ) : completed ? (
-                    <Badge variant="success" className="gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      視聴完了
-                    </Badge>
-                  ) : watched ? (
-                    <Badge variant="info" className="gap-1">
-                      <Clock className="w-3 h-3" />
-                      視聴中
-                    </Badge>
-                  ) : (
-                    <Badge variant="default" className="gap-1">
-                      未視聴
-                    </Badge>
-                  )}
-                </td>
-
-                {/* 視聴日時 */}
-                <td className="px-6 py-4 text-gray-500 text-xs">
-                  {latestLog ? (
-                    <span>
-                      {new Date(latestLog.watched_at).toLocaleString('ja-JP', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  ) : (
-                    <span className="text-gray-300">—</span>
-                  )}
-                </td>
-
-                {/* 共有リンク */}
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-1">
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isActive ? (
+                  <>
                     <a
                       href={watchUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`text-xs truncate max-w-[160px] hover:underline min-h-0 ${
-                        isActive ? 'text-primary' : 'text-gray-300 pointer-events-none'
-                      }`}
-                      title={watchUrl}
+                      className="flex items-center gap-1 text-xs text-primary hover:underline min-h-0"
                     >
-                      <span className="flex items-center gap-1">
-                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                        /watch/{share.token.slice(0, 8)}…
-                      </span>
+                      <ExternalLink className="w-3 h-3" />
+                      リンクを開く
                     </a>
-                    {isActive && <CopyButton url={watchUrl} />}
-                  </div>
-                </td>
-
-                {/* アクション */}
-                <td className="px-6 py-4">
-                  {isActive && (
+                    <CopyButton url={watchUrl} />
                     <button
                       onClick={() => handleRevoke(share.id)}
                       disabled={revokingId === share.id}
-                      className="text-xs text-red-500 hover:text-red-700 hover:underline disabled:opacity-50 min-h-0"
+                      className="ml-auto text-xs text-red-500 hover:text-red-700 hover:underline disabled:opacity-50 min-h-0"
                     >
                       {revokingId === share.id ? '処理中...' : '無効化'}
                     </button>
-                  )}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-300">リンク無効</span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* デスクトップ: テーブル形式 */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 text-left text-xs text-gray-500 uppercase tracking-wide">
+              <th className="px-6 py-3 font-medium">患者名</th>
+              <th className="px-6 py-3 font-medium">発行日</th>
+              <th className="px-6 py-3 font-medium">有効期限</th>
+              <th className="px-6 py-3 font-medium">視聴状況</th>
+              <th className="px-6 py-3 font-medium">視聴日時</th>
+              <th className="px-6 py-3 font-medium">共有リンク</th>
+              <th className="px-6 py-3 font-medium"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {sorted.map((share) => {
+              const expired = isExpired(share.expires_at)
+              const completed = share.watch_logs?.some((l) => l.is_completed)
+              const watched = share.watch_logs?.length > 0
+              const latestLog = share.watch_logs?.sort(
+                (a, b) => new Date(b.watched_at).getTime() - new Date(a.watched_at).getTime()
+              )[0]
+              const isActive = !share.is_revoked && !expired
+              const watchUrl = `${origin}/watch/${share.token}`
+
+              return (
+                <tr key={share.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-gray-900">
+                    {share.patient_name ?? <span className="text-gray-400">未設定</span>}
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">{formatDate(share.created_at)}</td>
+                  <td className="px-6 py-4 text-gray-600">
+                    <span className={expired || share.is_revoked ? 'text-gray-400 line-through' : ''}>
+                      {formatDate(share.expires_at)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    {share.is_revoked ? (
+                      <Badge variant="danger" className="gap-1"><Ban className="w-3 h-3" />無効化済み</Badge>
+                    ) : expired ? (
+                      <Badge variant="warning" className="gap-1"><AlertCircle className="w-3 h-3" />期限切れ</Badge>
+                    ) : completed ? (
+                      <Badge variant="success" className="gap-1"><CheckCircle2 className="w-3 h-3" />視聴完了</Badge>
+                    ) : watched ? (
+                      <Badge variant="info" className="gap-1"><Clock className="w-3 h-3" />視聴中</Badge>
+                    ) : (
+                      <Badge variant="default">未視聴</Badge>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-gray-500 text-xs">
+                    {latestLog ? (
+                      new Date(latestLog.watched_at).toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-1">
+                      <a
+                        href={watchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`text-xs truncate max-w-[160px] hover:underline min-h-0 ${isActive ? 'text-primary' : 'text-gray-300 pointer-events-none'}`}
+                        title={watchUrl}
+                      >
+                        <span className="flex items-center gap-1">
+                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                          /watch/{share.token.slice(0, 8)}…
+                        </span>
+                      </a>
+                      {isActive && <CopyButton url={watchUrl} />}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    {isActive && (
+                      <button
+                        onClick={() => handleRevoke(share.id)}
+                        disabled={revokingId === share.id}
+                        className="text-xs text-red-500 hover:text-red-700 hover:underline disabled:opacity-50 min-h-0"
+                      >
+                        {revokingId === share.id ? '処理中...' : '無効化'}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }
