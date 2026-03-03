@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardBody } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import ShareModal from '@/components/dashboard/ShareModal'
 import { formatDate, formatDuration, isExpired } from '@/lib/utils'
-import { Share2, Trash2, Clock, CheckCircle2, Eye } from 'lucide-react'
+import { Share2, Trash2, Clock, CheckCircle2, Eye, ChevronRight } from 'lucide-react'
 
 interface WatchLog {
   id: string
@@ -121,10 +122,15 @@ export default function VideoCard({ video }: VideoCardProps) {
 
         {/* Actions */}
         <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
+          <Link href={`/dashboard/videos/${video.id}`} className="flex-1">
+            <Button variant="ghost" size="sm" className="w-full text-gray-600">
+              <ChevronRight className="w-4 h-4 mr-1.5" />
+              詳細・履歴
+            </Button>
+          </Link>
           <Button
             variant="secondary"
             size="sm"
-            className="flex-1"
             onClick={() => setShowShareModal(true)}
           >
             <Share2 className="w-4 h-4 mr-1.5" />
