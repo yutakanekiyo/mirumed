@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 import VideoPlayer from '@/components/watch/VideoPlayer'
 import { Video } from 'lucide-react'
 
@@ -6,38 +7,50 @@ interface WatchPageProps {
   params: Promise<{ token: string }>
 }
 
-interface WatchData {
-  shareId: string
-  videoUrl: string
-  title: string
-  description: string | null
-  patientName: string | null
-  clinicName: string
-  doctorName: string
-}
-
-async function getWatchData(token: string): Promise<WatchData | null> {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-    const res = await fetch(`${baseUrl}/api/watch/${token}`, {
-      cache: 'no-store',
-    })
-
-    if (!res.ok) return null
-
-    return res.json()
-  } catch {
-    return null
-  }
-}
-
 export default async function WatchPage({ params }: WatchPageProps) {
   const { token } = await params
-  const data = await getWatchData(token)
+  const supabase = await createClient()
 
-  if (!data) {
+  // トークン検証
+  const { data: share } = await supabase
+    .from('video_shares')
+    .select(`
+      id,
+      patient_name,
+      expires_at,
+      is_revoked,
+      videos (
+        title,
+        description,
+        storage_path,
+        profiles (
+          full_name,
+          clinic_name
+        )
+      )
+    `)
+    .eq('token', token)
+    .single()
+
+  if (!share || share.is_revoked || new Date(share.expires_at) < new Date()) {
     notFound()
   }
+
+  const video = share.videos as unknown as {
+    title: string
+    description: string | null
+    storage_path: string
+    profiles: { full_name: string; clinic_name: string } | null
+  } | null
+
+  if (!video) notFound()
+
+  // 署名付きURL生成（1時間有効）
+  const { data: signedUrlData } = await supabase.storage
+    .from('videos')
+    .createSignedUrl(video.storage_path, 3600)
+
+  if (!signedUrlData?.signedUrl) notFound()
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -49,37 +62,31 @@ export default async function WatchPage({ params }: WatchPageProps) {
           </div>
           <div>
             <p className="text-sm font-semibold text-white">mirumed</p>
-            <p className="text-xs text-gray-400">{data.clinicName}</p>
+            <p className="text-xs text-gray-400">{video.profiles?.clinic_name}</p>
           </div>
         </div>
       </header>
 
       {/* Content */}
       <main className="max-w-2xl mx-auto px-4 py-6">
-        {/* Patient greeting */}
-        {data.patientName && (
-          <p className="text-gray-400 text-sm mb-4">
-            {data.patientName} 様へ
-          </p>
+        {share.patient_name && (
+          <p className="text-gray-400 text-sm mb-4">{share.patient_name} 様へ</p>
         )}
 
-        {/* Video title */}
-        <h1 className="text-xl font-bold text-white mb-2">{data.title}</h1>
-        {data.description && (
-          <p className="text-gray-400 text-sm mb-4">{data.description}</p>
+        <h1 className="text-xl font-bold text-white mb-2">{video.title}</h1>
+        {video.description && (
+          <p className="text-gray-400 text-sm mb-4">{video.description}</p>
         )}
 
         <p className="text-xs text-gray-500 mb-4">
-          {data.doctorName} より
+          {video.profiles?.full_name} より
         </p>
 
-        {/* Video player */}
         <VideoPlayer
-          videoUrl={data.videoUrl}
-          shareId={data.shareId}
+          videoUrl={signedUrlData.signedUrl}
+          shareId={share.id}
         />
 
-        {/* Note */}
         <div className="mt-6 p-4 bg-gray-900 rounded-xl border border-gray-800">
           <p className="text-xs text-gray-400 leading-relaxed">
             この動画はあなた専用の共有リンクで配信されています。

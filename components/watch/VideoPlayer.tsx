@@ -13,12 +13,12 @@ export default function VideoPlayer({ videoUrl, shareId, onComplete }: VideoPlay
   const [completed, setCompleted] = useState(false)
   const [reported, setReported] = useState(false)
 
-  // 視聴開始時にログを記録
+  // 視聴開始ログ
   useEffect(() => {
-    fetch(`/api/watch/${shareId}/complete`, {
+    fetch('/api/watch/complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isCompleted: false, watchDurationSeconds: 0 }),
+      body: JSON.stringify({ shareId, isCompleted: false, watchDurationSeconds: 0 }),
     }).catch(() => {})
   }, [shareId])
 
@@ -30,10 +30,11 @@ export default function VideoPlayer({ videoUrl, shareId, onComplete }: VideoPlay
     const duration = videoRef.current?.duration ?? 0
 
     try {
-      await fetch(`/api/watch/${shareId}/complete`, {
+      await fetch('/api/watch/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          shareId,
           isCompleted: true,
           watchDurationSeconds: Math.floor(duration),
         }),

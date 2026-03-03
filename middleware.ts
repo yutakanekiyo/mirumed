@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // /api/watch/* は認証不要
-  if (pathname.startsWith('/api/watch/')) {
+  if (pathname.startsWith('/api/watch')) {
     return supabaseResponse
   }
 

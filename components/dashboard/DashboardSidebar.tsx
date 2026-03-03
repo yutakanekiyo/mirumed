@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Upload, LogOut, Video } from 'lucide-react'
+import { LayoutDashboard, Upload, LogOut, Video, UserCog } from 'lucide-react'
 import type { Profile } from '@/types'
 
 interface DashboardSidebarProps {
@@ -14,6 +14,7 @@ interface DashboardSidebarProps {
 const navItems = [
   { href: '/dashboard', label: '動画一覧', icon: LayoutDashboard },
   { href: '/dashboard/upload', label: '動画アップロード', icon: Upload },
+  { href: '/dashboard/profile', label: 'プロフィール編集', icon: UserCog },
 ]
 
 export default function DashboardSidebar({ profile }: DashboardSidebarProps) {

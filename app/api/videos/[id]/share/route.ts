@@ -46,9 +46,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: shareError?.message ?? 'Share creation failed' }, { status: 500 })
   }
 
-  // 共有URL生成
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-  const shareUrl = `${siteUrl}/watch/${share.token}`
+  // 共有URL生成（リクエストのホストから動的に取得）
+  const host = request.headers.get('host') ?? 'localhost:3000'
+  const protocol = host.startsWith('localhost') ? 'http' : 'https'
+  const shareUrl = `${protocol}://${host}/watch/${share.token}`
 
   // QRコード生成
   const qrCodeDataUrl = await QRCode.toDataURL(shareUrl, {

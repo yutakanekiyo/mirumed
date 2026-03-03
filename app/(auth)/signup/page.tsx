@@ -30,9 +30,16 @@ export default function SignupPage() {
 
     const supabase = createClient()
 
+    // メタデータとしてプロフィール情報を渡す → DBトリガーが自動でprofilesに挿入
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
+      options: {
+        data: {
+          full_name: formData.fullName,
+          clinic_name: formData.clinicName,
+        },
+      },
     })
 
     if (signUpError) {
@@ -42,19 +49,6 @@ export default function SignupPage() {
     }
 
     if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        full_name: formData.fullName,
-        clinic_name: formData.clinicName,
-        role: 'doctor',
-      })
-
-      if (profileError) {
-        setError('プロフィールの作成に失敗しました: ' + profileError.message)
-        setLoading(false)
-        return
-      }
-
       if (data.session) {
         router.push('/dashboard')
         router.refresh()
