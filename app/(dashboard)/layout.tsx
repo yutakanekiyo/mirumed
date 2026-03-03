@@ -23,7 +23,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       <DashboardSidebar profile={profile} />
-      <main className="md:ml-64 pt-14 md:pt-0 p-4 md:p-8">
+      <main className="md:ml-64 mt-14 md:mt-0 p-4 md:p-8">
         {children}
       </main>
     </div>
