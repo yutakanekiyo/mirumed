@@ -66,7 +66,24 @@ function SignupForm() {
     })
 
     if (signUpError) {
-      setError(signUpError.message)
+      const msg = signUpError.message
+      if (msg.includes('already registered') || msg.includes('already been registered')) {
+        setError('このメールアドレスはすでに登録済みです')
+      } else if (msg.includes('invalid') && msg.toLowerCase().includes('email')) {
+        setError('メールアドレスの形式が正しくありません')
+      } else if (msg.includes('Password') || msg.includes('password')) {
+        setError('パスワードは8文字以上で入力してください')
+      } else {
+        setError('登録に失敗しました。しばらく経ってから再度お試しください')
+      }
+      setLoading(false)
+      return
+    }
+
+    // メール確認が有効な場合、既存メールでも signUpError にならず
+    // identities が空で返ってくるため重複チェック
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      setError('このメールアドレスはすでに登録済みです')
       setLoading(false)
       return
     }
