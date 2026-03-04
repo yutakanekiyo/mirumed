@@ -3,12 +3,15 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import InvitationsClient from './InvitationsClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminInvitationsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // 管理者メール以外は 404
-  if (!user || user.email !== process.env.ADMIN_EMAIL) {
+  const adminEmail = process.env.ADMIN_EMAIL?.trim()
+  if (!user || user.email !== adminEmail) {
     notFound()
   }
 
