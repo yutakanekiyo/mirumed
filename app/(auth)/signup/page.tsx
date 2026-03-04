@@ -5,15 +5,16 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
-import { UserPlus } from 'lucide-react'
+import { UserPlus, Ticket } from 'lucide-react'
 
 export default function SignupPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    inviteCode: '',
     fullName: '',
     clinicName: '',
+    email: '',
+    password: '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,8 +30,21 @@ export default function SignupPage() {
     setError(null)
 
     const supabase = createClient()
+    const code = formData.inviteCode.trim().toUpperCase()
 
-    // メタデータとしてプロフィール情報を渡す → DBトリガーが自動でprofilesに挿入
+    // Step 1: 招待コードの有効性を確認
+    const { data: isValid, error: checkError } = await supabase.rpc(
+      'check_invitation_code',
+      { p_code: code }
+    )
+
+    if (checkError || !isValid) {
+      setError('招待コードが無効または使用済みです')
+      setLoading(false)
+      return
+    }
+
+    // Step 2: Supabase Auth でユーザー登録
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
@@ -48,7 +62,10 @@ export default function SignupPage() {
       return
     }
 
+    // Step 3: 招待コードを使用済みにマーク
     if (data.user) {
+      await supabase.rpc('use_invitation_code', { p_code: code })
+
       if (data.session) {
         router.push('/dashboard')
         router.refresh()
@@ -108,69 +125,98 @@ export default function SignupPage() {
           )}
 
           <form onSubmit={handleSignup} className="space-y-4">
+            {/* 招待コード（最上部に配置） */}
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                氏名
+              <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 mb-1">
+                招待コード <span className="text-red-500">*</span>
               </label>
-              <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                value={formData.fullName}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary"
-                placeholder="山田 太郎"
-              />
+              <div className="relative">
+                <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  id="inviteCode"
+                  name="inviteCode"
+                  type="text"
+                  value={formData.inviteCode}
+                  onChange={handleChange}
+                  required
+                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary font-mono tracking-widest uppercase"
+                  placeholder="MIRU-XXXX-XXXX"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">担当者からお知らせした招待コードを入力してください</p>
             </div>
 
-            <div>
-              <label htmlFor="clinicName" className="block text-sm font-medium text-gray-700 mb-1">
-                医療機関名
-              </label>
-              <input
-                id="clinicName"
-                name="clinicName"
-                type="text"
-                value={formData.clinicName}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary"
-                placeholder="山田クリニック"
-              />
-            </div>
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">アカウント情報</p>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                メールアドレス
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary"
-                placeholder="doctor@clinic.jp"
-              />
-            </div>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                    氏名 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary"
+                    placeholder="山田 太郎"
+                  />
+                </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                パスワード
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                minLength={8}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary"
-                placeholder="8文字以上"
-              />
+                <div>
+                  <label htmlFor="clinicName" className="block text-sm font-medium text-gray-700 mb-1">
+                    医療機関名 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="clinicName"
+                    name="clinicName"
+                    type="text"
+                    value={formData.clinicName}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary"
+                    placeholder="山田クリニック"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    メールアドレス <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary"
+                    placeholder="doctor@clinic.jp"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                    パスワード <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    minLength={8}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary"
+                    placeholder="8文字以上"
+                  />
+                </div>
+              </div>
             </div>
 
             <Button type="submit" className="w-full" loading={loading}>
