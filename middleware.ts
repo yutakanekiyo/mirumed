@@ -16,8 +16,8 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
-  // dashboardは認証必須
-  if (pathname.startsWith('/dashboard') && !user) {
+  // dashboard / admin は認証必須
+  if ((pathname.startsWith('/dashboard') || pathname.startsWith('/admin')) && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

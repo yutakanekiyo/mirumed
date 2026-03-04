@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
@@ -9,6 +9,7 @@ import { UserPlus, Ticket } from 'lucide-react'
 
 export default function SignupPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
     inviteCode: '',
     fullName: '',
@@ -19,6 +20,14 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  // URLパラメータ ?code=XXXX からコードを自動入力
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('code')
+    if (codeFromUrl) {
+      setFormData((prev) => ({ ...prev, inviteCode: codeFromUrl.toUpperCase() }))
+    }
+  }, [searchParams])
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -62,9 +71,13 @@ export default function SignupPage() {
       return
     }
 
-    // Step 3: 招待コードを使用済みにマーク
+    // Step 3: 招待コードを使用済みにマーク（ユーザー情報も記録）
     if (data.user) {
-      await supabase.rpc('use_invitation_code', { p_code: code })
+      await supabase.rpc('use_invitation_code', {
+        p_code: code,
+        p_user_id: data.user.id,
+        p_user_email: formData.email,
+      })
 
       if (data.session) {
         router.push('/dashboard')
